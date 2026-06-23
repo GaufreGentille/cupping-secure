@@ -1,7 +1,0 @@
-# Configuration de déploiement Netlify
-[build]
-  publish = "public"
-  functions = "netlify/functions"
-
-# Les routes /api/* sont déclarées dans chaque fonction via `export const config = { path: ... }`.
-# Aucune redirection manuelle nécessaire.
