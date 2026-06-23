@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cupping — Fiche de dégustation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#0f1a1c;
+  --panel:#16282b;
+  --panel-2:#1d3338;
+  --line:#2c4a50;
+  --ink:#eef3f1;
+  --muted:#8fa9a8;
+  --yellow:#fed238;
+  --orange:#da5d16;
+  --purple:#a06dd0;
+  --amber:#ea9524;
+  --green:#3ba776;
+  --radius:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
+body{padding:24px;max-width:980px;margin:0 auto;min-height:100vh}
+
+/* ---- Lock screen ---- */
+#lock{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:24px}
+#lock .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:36px;max-width:380px;width:100%;text-align:center}
+#lock h1{font-size:1.3rem;font-weight:700;margin-bottom:6px}
+#lock h1 span{color:var(--yellow)}
+#lock p{color:var(--muted);font-size:.85rem;margin-bottom:22px;line-height:1.5}
+#lock input{width:100%;padding:13px 14px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-size:1rem;text-align:center;letter-spacing:2px}
+#lock input:focus{outline:none;border-color:var(--yellow)}
+#lock button{width:100%;margin-top:14px;padding:13px;border:none;border-radius:10px;background:var(--yellow);color:#1a1100;font-weight:700;font-size:.95rem;cursor:pointer}
+#lock button:hover{background:#ffdb5a}
+#lockErr{color:var(--orange);font-size:.8rem;min-height:1.1em;margin-top:10px}
+.setup-note{color:var(--muted);font-size:.72rem;margin-top:18px;line-height:1.5}
+
+/* ---- Header ---- */
+header{display:flex;align-items:baseline;justify-content:space-between;gap:16px;margin-bottom:22px;flex-wrap:wrap}
+header h1{font-size:1.45rem;font-weight:700}
+header h1 b{color:var(--yellow)}
+header .sub{color:var(--muted);font-size:.8rem}
+
+/* ---- Form card ---- */
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px;margin-bottom:20px}
+.ref-row{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:8px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.field input[type=text]{padding:11px 13px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-size:.95rem;min-width:200px}
+.field input:focus{outline:none;border-color:var(--yellow)}
+.field.ref input{min-width:240px;font-weight:600}
+
+/* ---- Sliders ---- */
+.sliders{display:grid;grid-template-columns:1fr 1fr;gap:18px 28px;margin:22px 0}
+@media(max-width:640px){.sliders{grid-template-columns:1fr}}
+.slider{display:flex;flex-direction:column;gap:7px}
+.slider .top{display:flex;justify-content:space-between;align-items:center}
+.slider .name{font-size:.9rem;font-weight:600}
+.slider .val{font-variant-numeric:tabular-nums;font-weight:700;font-size:1rem;background:var(--panel-2);border:1px solid var(--line);border-radius:7px;padding:2px 10px;min-width:48px;text-align:center}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:6px;background:var(--panel-2);outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--yellow);border:3px solid var(--panel);cursor:pointer;box-shadow:0 0 0 1px var(--line)}
+input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:var(--yellow);border:3px solid var(--panel);cursor:pointer}
+.aroma-input{margin-top:8px;padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-size:.82rem;width:100%;font-family:inherit}
+.aroma-input::placeholder{color:#5d7a78;font-size:.78rem}
+.aroma-input:focus{outline:none;border-color:var(--purple)}
+
+.comment{display:flex;flex-direction:column;gap:6px;margin-top:6px}
+.comment label{font-size:.74rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.comment textarea{padding:12px 13px;border-radius:9px;border:1px solid var(--line);background:var(--panel-2);color:var(--ink);font-size:.9rem;resize:vertical;min-height:72px;font-family:inherit}
+.comment textarea:focus{outline:none;border-color:var(--yellow)}
+
+.actions{display:flex;gap:12px;margin-top:22px;flex-wrap:wrap}
+.btn{padding:12px 22px;border:none;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer}
+.btn-primary{background:var(--yellow);color:#1a1100}
+.btn-primary:hover{background:#ffdb5a}
+.btn-ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn-ghost:hover{border-color:var(--yellow)}
+.btn-export{background:var(--green);color:#04130c}
+.btn-export:hover{filter:brightness(1.1)}
+
+/* ---- Table ---- */
+.db-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px}
+.db-head h2{font-size:1rem;font-weight:700}
+.db-head .count{color:var(--muted);font-size:.8rem}
+.table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{width:100%;border-collapse:collapse;font-size:.82rem;white-space:nowrap}
+th,td{padding:10px 12px;text-align:center;border-bottom:1px solid var(--line)}
+th{background:var(--panel-2);color:var(--muted);font-weight:600;text-transform:uppercase;font-size:.68rem;letter-spacing:.5px;position:sticky;top:0}
+td.ref{font-weight:700;color:var(--yellow);text-align:left}
+td.cmt{text-align:left;color:var(--muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--panel-2)}
+.del{background:none;border:none;color:var(--orange);cursor:pointer;font-size:1rem;padding:2px 6px;border-radius:5px}
+.del:hover{background:rgba(218,93,22,.15)}
+.empty{text-align:center;color:var(--muted);padding:34px;font-size:.85rem}
+
+/* ---- Live radar under sliders ---- */
+.form-grid{display:grid;grid-template-columns:1fr 320px;gap:28px;align-items:start}
+@media(max-width:760px){.form-grid{grid-template-columns:1fr}}
+.radar-live{background:var(--panel-2);border:1px solid var(--line);border-radius:12px;padding:16px 14px 8px;position:sticky;top:16px}
+.radar-live h3{font-size:.72rem;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-bottom:6px}
+
+/* clickable rows */
+tbody tr.clickable{cursor:pointer}
+.view-badge{font-size:.72rem;color:var(--purple)}
+
+/* ---- Modal ---- */
+.overlay{position:fixed;inset:0;background:rgba(6,12,13,.82);z-index:90;display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px;max-width:440px;width:100%;max-height:90vh;overflow:auto}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+.modal-head .ref{font-size:1.15rem;font-weight:700;color:var(--yellow)}
+.modal-head .meta{color:var(--muted);font-size:.76rem;margin-top:2px}
+.modal-close{background:none;border:none;color:var(--muted);font-size:1.5rem;cursor:pointer;line-height:1}
+.modal-close:hover{color:var(--ink)}
+.modal-cmt{margin-top:14px;padding:12px 14px;background:var(--panel-2);border-radius:9px;font-size:.84rem;line-height:1.5;color:var(--ink)}
+.modal-aromas{margin-top:14px;padding:12px 14px;background:var(--panel-2);border-radius:9px}
+.modal-aromas .arow{display:flex;gap:8px;font-size:.82rem;margin-bottom:5px;line-height:1.4}
+.modal-aromas .arow:last-child{margin-bottom:0}
+.modal-aromas .ak{color:var(--purple);font-weight:700;min-width:78px}
+.modal-aromas .av{color:var(--ink)}
+.modal-cmt .lbl{display:block;color:var(--muted);font-size:.68rem;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+.modal-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.modal-actions .btn{flex:1;text-align:center;padding:11px 14px;font-size:.82rem}
+footer{margin-top:26px;color:var(--muted);font-size:.72rem;text-align:center;line-height:1.6}
+</style>
+</head>
+<body>
+
+<!-- LOCK SCREEN -->
+<div id="lock">
+  <div class="card">
+    <h1>Cupping <span>·</span> Dégustation</h1>
+    <p>Outil protégé. Saisis le mot de passe partagé pour accéder aux fiches.</p>
+    <input id="pwInput" type="password" placeholder="••••••" autocomplete="current-password">
+    <button id="unlockBtn" onclick="tryUnlock()">Déverrouiller</button>
+    <div id="lockErr"></div>
+    <div class="setup-note" id="setupNote">Accès réservé. Le mot de passe est partagé au sein de l'équipe qualité.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <header>
+    <div>
+      <h1>Fiche de <b>dégustation</b></h1>
+      <div class="sub">Notation sur 10 · base locale exportable Excel</div>
+    </div>
+    <button class="btn btn-ghost" onclick="lockNow()">🔒 Verrouiller</button>
+  </header>
+
+  <div class="card">
+    <div class="ref-row">
+      <div class="field ref">
+        <label>Réf. échantillon (Cropster)</label>
+        <input id="ref" type="text" placeholder="ex. 2026-0042" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Dégustateur (optionnel)</label>
+        <input id="taster" type="text" placeholder="Initiales / nom" autocomplete="off">
+      </div>
+    </div>
+
+    <div class="form-grid">
+      <div>
+        <div class="sliders" id="sliders"></div>
+        <div class="comment">
+          <label>Commentaire</label>
+          <textarea id="comment" placeholder="Notes de dégustation, descripteurs, défauts…"></textarea>
+        </div>
+      </div>
+      <div class="radar-live">
+        <h3>Profil en direct</h3>
+        <canvas id="liveRadar"></canvas>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="saveBtn" class="btn btn-primary" onclick="saveEntry()">＋ Enregistrer la fiche</button>
+      <button class="btn btn-ghost" onclick="resetForm()">Réinitialiser</button>
+      <button class="btn btn-export" onclick="exportExcel()">⬇ Exporter Excel</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="db-head">
+      <h2>Base de données</h2>
+      <span class="count" id="count">0 fiche</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Base partagée — les fiches sont stockées côté serveur et accessibles depuis tous les appareils connectés.<br>
+    Accès protégé par mot de passe vérifié côté serveur. Exporte régulièrement en Excel pour garder une sauvegarde.
+  </footer>
+</div>
+
+<!-- RADAR MODAL -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <div>
+        <div class="ref" id="mRef"></div>
+        <div class="meta" id="mMeta"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal()">×</button>
+    </div>
+    <canvas id="modalRadar"></canvas>
+    <div class="modal-aromas" id="mAromasWrap" style="display:none">
+      <span class="lbl">Descripteurs</span>
+      <div id="mAromas"></div>
+    </div>
+    <div class="modal-cmt" id="mCmtWrap" style="display:none">
+      <span class="lbl">Commentaire</span>
+      <span id="mCmt"></span>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-export" onclick="exportFicheImage()">🖼 Fiche produit (PNG)</button>
+      <button class="btn btn-ghost" onclick="exportFicheHtml()">⬇ Fiche HTML</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ CONFIG ============ */
+const CRITERIA = ["Fragrance","Arômes","Acidité","Sucre","Amertume","Corps","Balance","Intensité"];
+const AROMA_FOR = ["Fragrance","Arômes","Acidité","Corps"]; // critères avec champ texte libre
+const NOTE_LABEL = {
+  "Fragrance":"Notes aromatiques",
+  "Arômes":"Notes aromatiques",
+  "Acidité":"Type d'acidité",
+  "Corps":"Sensation / texture"
+};
+const NOTE_PLACEHOLDER = {
+  "Fragrance":"Notes aromatiques — ex. fruits rouges, floral, cacao…",
+  "Arômes":"Notes aromatiques — ex. fruits rouges, floral, cacao…",
+  "Acidité":"Type d'acidité — ex. acétique, malique, citrique…",
+  "Corps":"Sensation / texture — ex. poids lourd, soyeux, légèrement asséchant…"
+};
+const API = "/api/cupping";
+
+/* ============ AUTH (server-side session) ============ */
+let DB = []; // in-memory cache of entries, loaded from server after login
+
+async function tryUnlock(){
+  const err = document.getElementById("lockErr");
+  const btn = document.getElementById("unlockBtn");
+  try{
+    const val = document.getElementById("pwInput").value;
+    if(!val){ err.textContent="Saisis le mot de passe."; return; }
+    err.textContent=""; if(btn){ btn.disabled=true; btn.textContent="Connexion…"; }
+    const r = await fetch("/api/login", {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ password: val })
+    });
+    if(r.ok){
+      document.getElementById("pwInput").value="";
+      await unlock();
+    } else {
+      const d = await r.json().catch(()=>({}));
+      err.textContent = d.error || "Mot de passe incorrect.";
+      document.getElementById("pwInput").value="";
+    }
+  }catch(e){
+    err.textContent="Erreur de connexion. Réessaie.";
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent="Déverrouiller"; }
+  }
+}
+
+async function unlock(){
+  document.getElementById("lock").style.display="none";
+  document.getElementById("app").style.display="block";
+  updateLiveRadar();
+  await loadEntries();
+}
+
+async function lockNow(){
+  try{ await fetch("/api/session", { method:"POST" }); }catch(_){}
+  DB = [];
+  document.getElementById("app").style.display="none";
+  document.getElementById("lock").style.display="flex";
+  document.getElementById("pwInput").value="";
+  document.getElementById("lockErr").textContent="";
+}
+document.getElementById("pwInput").addEventListener("keydown",e=>{ if(e.key==="Enter") tryUnlock(); });
+
+// On load, check if a session already exists (stay logged in across reloads)
+(async function(){
+  try{
+    const r = await fetch("/api/session");
+    const d = await r.json();
+    if(d.authenticated){ await unlock(); }
+  }catch(_){}
+})();
+
+/* ============ FORM ============ */
+function buildSliders(){
+  const wrap = document.getElementById("sliders");
+  wrap.innerHTML = CRITERIA.map((c,i)=>`
+    <div class="slider">
+      <div class="top">
+        <span class="name">${c}</span>
+        <span class="val" id="val-${i}">5.0</span>
+      </div>
+      <input type="range" min="0" max="10" step="0.25" value="5" id="sl-${i}"
+        oninput="document.getElementById('val-${i}').textContent=parseFloat(this.value).toFixed(2).replace(/\\.?0+$/,'')||'0'; updateLiveRadar();">
+      ${AROMA_FOR.includes(c) ? `<input type="text" class="aroma-input" id="ar-${i}" placeholder="${NOTE_PLACEHOLDER[c]||''}" autocomplete="off">` : ``}
+    </div>`).join("");
+}
+function resetForm(){
+  document.getElementById("ref").value="";
+  document.getElementById("taster").value="";
+  document.getElementById("comment").value="";
+  CRITERIA.forEach((c,i)=>{
+    document.getElementById("sl-"+i).value=5;
+    document.getElementById("val-"+i).textContent="5";
+    const ar=document.getElementById("ar-"+i); if(ar) ar.value="";
+  });
+  updateLiveRadar();
+}
+
+/* ============ RADAR ============ */
+function radarConfig(values, color){
+  return {
+    type:"radar",
+    data:{
+      labels:CRITERIA,
+      datasets:[{
+        data:values,
+        fill:true,
+        backgroundColor:color.fill,
+        borderColor:color.line,
+        borderWidth:2,
+        pointBackgroundColor:color.line,
+        pointBorderColor:"#16282b",
+        pointRadius:3,
+        pointHoverRadius:5
+      }]
+    },
+    options:{
+      responsive:true,
+      animation:{duration:300},
+      plugins:{legend:{display:false},tooltip:{
+        callbacks:{label:ctx=>` ${ctx.label}: ${ctx.parsed.r}`}
+      }},
+      scales:{r:{
+        min:0,max:10,
+        ticks:{stepSize:2,color:"#8fa9a8",backdropColor:"transparent",font:{size:9}},
+        grid:{color:"#2c4a50"},
+        angleLines:{color:"#2c4a50"},
+        pointLabels:{color:"#eef3f1",font:{size:10,weight:"600"}}
+      }}
+    }
+  };
+}
+let liveChart=null, modalChart=null;
+function currentValues(){ return CRITERIA.map((c,i)=>parseFloat(document.getElementById("sl-"+i).value)); }
+function updateLiveRadar(){
+  const vals=currentValues();
+  const col={fill:"rgba(254,210,56,.18)",line:"#fed238"};
+  if(!liveChart){
+    liveChart=new Chart(document.getElementById("liveRadar"), radarConfig(vals,col));
+  }else{
+    liveChart.data.datasets[0].data=vals;
+    liveChart.update();
+  }
+}
+function openModal(id){
+  const e=loadDB().find(x=>x.id===id);
+  if(!e) return;
+  currentEntry=e;
+  document.getElementById("mRef").textContent=e.ref;
+  document.getElementById("mMeta").textContent=`${e.date}${e.taster? " · "+e.taster:""}`;
+  const cmtWrap=document.getElementById("mCmtWrap");
+  if(e.comment){ cmtWrap.style.display="block"; document.getElementById("mCmt").textContent=e.comment; }
+  else cmtWrap.style.display="none";
+  const aromasWrap=document.getElementById("mAromasWrap");
+  const ar=e.aromas||{};
+  const arKeys=AROMA_FOR.filter(c=>ar[c]);
+  if(arKeys.length){
+    aromasWrap.style.display="block";
+    document.getElementById("mAromas").innerHTML=arKeys.map(c=>
+      `<div class="arow"><span class="ak">${c}</span><span class="av">${escapeHtml(ar[c])}</span></div>`).join("");
+  } else aromasWrap.style.display="none";
+  const vals=CRITERIA.map(c=>e.scores[c]??0);
+  const col={fill:"rgba(160,109,208,.20)",line:"#a06dd0"};
+  if(modalChart) modalChart.destroy();
+  modalChart=new Chart(document.getElementById("modalRadar"), radarConfig(vals,col));
+  document.getElementById("overlay").classList.add("open");
+}
+function closeModal(){ document.getElementById("overlay").classList.remove("open"); }
+document.addEventListener("keydown",e=>{ if(e.key==="Escape") closeModal(); });
+let currentEntry=null;
+
+/* ---- Render a standalone radar onto an offscreen canvas at high-res ---- */
+function renderRadarToCanvas(vals, size){
+  const cv=document.createElement("canvas");
+  cv.width=size; cv.height=size;
+  const ch=new Chart(cv,{
+    type:"radar",
+    data:{labels:CRITERIA,datasets:[{
+      data:vals,fill:true,
+      backgroundColor:"rgba(160,109,208,.22)",
+      borderColor:"#a06dd0",borderWidth:2.5,
+      pointBackgroundColor:"#a06dd0",pointBorderColor:"#16282b",pointRadius:3.5
+    }]},
+    options:{responsive:false,animation:false,devicePixelRatio:1,
+      plugins:{legend:{display:false},tooltip:{enabled:false}},
+      scales:{r:{min:0,max:10,
+        ticks:{stepSize:2,color:"#7b9695",backdropColor:"transparent",font:{size:11}},
+        grid:{color:"#3a5a60"},angleLines:{color:"#3a5a60"},
+        pointLabels:{color:"#16282b",font:{size:13,weight:"700"}}
+      }}}
+  });
+  const url=cv.toDataURL("image/png");
+  ch.destroy();
+  return url;
+}
+
+/* ---- PNG product sheet ---- */
+function exportFicheImage(){
+  const e=currentEntry; if(!e) return;
+  const W=900, scale=2;
+  const cv=document.createElement("canvas");
+  const ctx=cv.getContext("2d");
+  // measure dynamic blocks first
+  ctx.font=`${15*scale}px 'Segoe UI',sans-serif`;
+  // aroma lines (only criteria that have a note)
+  const aromaEntries = AROMA_FOR.filter(c=>e.aromas&&e.aromas[c]);
+  const aromaLines = []; // {label, lines:[...]}
+  aromaEntries.forEach(c=>{
+    const wrapped = wrapText(ctx, e.aromas[c], (W-260)*scale);
+    aromaLines.push({label:c, lines:wrapped});
+  });
+  const aromaCount = aromaLines.reduce((n,a)=>n+a.lines.length,0);
+  const aromaBlockH = aromaEntries.length ? 50 + aromaCount*24 : 0;
+
+  const cmtLines = e.comment ? wrapText(ctx, e.comment, (W-100)*scale) : [];
+  const baseH = 600;
+  const H = baseH + aromaBlockH + (cmtLines.length? 60 + cmtLines.length*26 : 0);
+  cv.width=W*scale; cv.height=H*scale;
+  ctx.scale(scale,scale);
+
+  // background
+  ctx.fillStyle="#16282b"; ctx.fillRect(0,0,W,H);
+  // top accent bar
+  ctx.fillStyle="#fed238"; ctx.fillRect(0,0,W,8);
+
+  // header
+  ctx.fillStyle="#fed238";
+  ctx.font="700 30px 'Segoe UI',sans-serif";
+  ctx.fillText(e.ref, 50, 64);
+  ctx.fillStyle="#8fa9a8";
+  ctx.font="15px 'Segoe UI',sans-serif";
+  ctx.fillText(`${e.date}${e.taster? "  ·  "+e.taster:""}`, 50, 90);
+  ctx.fillStyle="#5d7a78";
+  ctx.font="13px 'Segoe UI',sans-serif";
+  ctx.fillText("Fiche de dégustation", 50, 110);
+
+  // radar on white rounded panel (left)
+  const radarSize=360;
+  const panelX=40, panelY=140, panelW=400, panelH=400;
+  roundRect(ctx,panelX,panelY,panelW,panelH,16);
+  ctx.fillStyle="#f4f6f5"; ctx.fill();
+  const img=new Image();
+  img.onload=()=>{
+    ctx.drawImage(img, panelX+20, panelY+20, radarSize, radarSize);
+
+    // scores list (right)
+    let sx=480, sy=170;
+    ctx.fillStyle="#8fa9a8"; ctx.font="700 12px 'Segoe UI',sans-serif";
+    ctx.fillText("NOTES / 10", sx, sy); sy+=26;
+    CRITERIA.forEach(c=>{
+      ctx.fillStyle="#eef3f1"; ctx.font="15px 'Segoe UI',sans-serif";
+      ctx.fillText(c, sx, sy);
+      // bar
+      const bx=sx+150, bw=180, v=e.scores[c]??0;
+      ctx.fillStyle="#1d3338"; roundRect(ctx,bx,sy-12,bw,8,4); ctx.fill();
+      ctx.fillStyle="#fed238"; roundRect(ctx,bx,sy-12,bw*(v/10),8,4); ctx.fill();
+      ctx.fillStyle="#fed238"; ctx.font="700 14px 'Segoe UI',sans-serif";
+      ctx.textAlign="right"; ctx.fillText(v.toString(), bx+bw+40, sy); ctx.textAlign="left";
+      sy+=40;
+    });
+
+    // running y for stacked blocks below the radar/scores
+    let by = 560;
+
+    // aroma notes block
+    if(aromaEntries.length){
+      ctx.fillStyle="#a06dd0"; ctx.font="700 12px 'Segoe UI',sans-serif";
+      ctx.fillText("DESCRIPTEURS", 50, by); by+=24;
+      aromaLines.forEach(a=>{
+        ctx.fillStyle="#a06dd0"; ctx.font="700 14px 'Segoe UI',sans-serif";
+        ctx.fillText(a.label, 50, by);
+        ctx.fillStyle="#eef3f1"; ctx.font="14px 'Segoe UI',sans-serif";
+        a.lines.forEach(l=>{ ctx.fillText(l, 200, by); by+=24; });
+      });
+      by+=14;
+    }
+
+    // comment
+    if(cmtLines.length){
+      ctx.fillStyle="#8fa9a8"; ctx.font="700 12px 'Segoe UI',sans-serif";
+      ctx.fillText("COMMENTAIRE", 50, by); by+=26;
+      ctx.fillStyle="#eef3f1"; ctx.font="15px 'Segoe UI',sans-serif";
+      cmtLines.forEach(l=>{ ctx.fillText(l, 50, by); by+=26; });
+    }
+
+    const a=document.createElement("a");
+    a.download=`fiche_${slug(e.ref)}.png`;
+    a.href=cv.toDataURL("image/png");
+    a.click();
+  };
+  img.src=renderRadarToCanvas(CRITERIA.map(c=>e.scores[c]??0), radarSize*scale);
+}
+
+function wrapText(ctx, text, maxW){
+  const words=text.split(/\s+/), lines=[]; let line="";
+  ctx.font="15px 'Segoe UI',sans-serif";
+  words.forEach(w=>{
+    const t=line?line+" "+w:w;
+    if(ctx.measureText(t).width>maxW && line){ lines.push(line); line=w; }
+    else line=t;
+  });
+  if(line) lines.push(line);
+  return lines;
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function slug(s){ return (s||"fiche").replace(/[^\w\-]+/g,"_"); }
+
+/* ---- HTML product sheet ---- */
+function exportFicheHtml(){
+  const e=currentEntry; if(!e) return;
+  const radarUrl=renderRadarToCanvas(CRITERIA.map(c=>e.scores[c]??0), 700);
+  const bars=CRITERIA.map(c=>{
+    const v=e.scores[c]??0;
+    return `<div class="row"><span class="n">${c}</span><span class="bar"><i style="width:${v*10}%"></i></span><span class="v">${v}</span></div>`;
+  }).join("");
+  const aromaEntries=AROMA_FOR.filter(c=>e.aromas&&e.aromas[c]);
+  const aromaBlock=aromaEntries.length
+    ? `<div class="aromas"><div class="lbl">Descripteurs</div>${aromaEntries.map(c=>
+        `<div class="arow"><span class="ak">${escapeHtml(c)}</span><span class="av">${escapeHtml(e.aromas[c])}</span></div>`).join("")}</div>`
+    : "";
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fiche — ${escapeHtml(e.ref)}</title><style>
+body{margin:0;background:#0f1a1c;color:#eef3f1;font-family:'Segoe UI',system-ui,sans-serif;display:flex;justify-content:center;padding:30px}
+.sheet{background:#16282b;border-radius:18px;max-width:760px;width:100%;overflow:hidden;border:1px solid #2c4a50}
+.bar-top{height:8px;background:#fed238}
+.pad{padding:30px 36px}
+h1{margin:0;color:#fed238;font-size:1.8rem}
+.meta{color:#8fa9a8;font-size:.85rem;margin-top:4px}
+.kicker{color:#5d7a78;font-size:.78rem;margin-top:2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:28px;margin-top:24px;align-items:center}
+@media(max-width:620px){.grid{grid-template-columns:1fr}}
+.radar{background:#f4f6f5;border-radius:14px;padding:14px}
+.radar img{width:100%;display:block}
+.lbl{color:#8fa9a8;font-size:.72rem;font-weight:700;letter-spacing:.5px;text-transform:uppercase;margin-bottom:12px}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:13px}
+.row .n{flex:1;font-size:.92rem}
+.row .bar{width:120px;height:8px;background:#1d3338;border-radius:4px;overflow:hidden}
+.row .bar i{display:block;height:100%;background:#fed238}
+.row .v{color:#fed238;font-weight:700;width:30px;text-align:right}
+.cmt{margin-top:24px;background:#1d3338;border-radius:10px;padding:14px 16px;font-size:.9rem;line-height:1.55}
+.aromas{margin-top:24px;background:#1d3338;border-radius:10px;padding:14px 16px}
+.arow{display:flex;gap:10px;font-size:.88rem;margin-bottom:6px;line-height:1.45}
+.arow:last-child{margin-bottom:0}
+.arow .ak{color:#a06dd0;font-weight:700;min-width:90px}
+.arow .av{color:#eef3f1}
+</style></head><body>
+<div class="sheet"><div class="bar-top"></div><div class="pad">
+<h1>${escapeHtml(e.ref)}</h1>
+<div class="meta">${escapeHtml(e.date)}${e.taster?" · "+escapeHtml(e.taster):""}</div>
+<div class="kicker">Fiche de dégustation</div>
+<div class="grid">
+<div class="radar"><img src="${radarUrl}" alt="Radar ${escapeHtml(e.ref)}"></div>
+<div><div class="lbl">Notes / 10</div>${bars}</div>
+</div>
+${aromaBlock}
+${e.comment?`<div class="cmt"><div class="lbl">Commentaire</div>${escapeHtml(e.comment)}</div>`:""}
+</div></div></body></html>`;
+  const blob=new Blob([html],{type:"text/html"});
+  const a=document.createElement("a");
+  a.download=`fiche_${slug(e.ref)}.html`;
+  a.href=URL.createObjectURL(blob);
+  a.click();
+}
+
+/* ============ DATA (server-backed) ============ */
+function loadDB(){ return DB; }
+
+async function loadEntries(){
+  const tbody = document.getElementById("tbody");
+  try{
+    const r = await fetch(API);
+    if(r.status === 401){ await lockNow(); return; }
+    const d = await r.json();
+    DB = Array.isArray(d) ? d : [];
+  }catch(e){
+    console.error("Chargement échoué:", e);
+    DB = [];
+  }
+  renderTable();
+}
+
+async function saveEntry(){
+  const ref = document.getElementById("ref").value.trim();
+  if(!ref){ alert("Renseigne la référence de l'échantillon."); document.getElementById("ref").focus(); return; }
+  const scores = {};
+  CRITERIA.forEach((c,i)=> scores[c] = parseFloat(document.getElementById("sl-"+i).value) );
+  const aromas = {};
+  AROMA_FOR.forEach(c=>{
+    const i = CRITERIA.indexOf(c);
+    const el = document.getElementById("ar-"+i);
+    const v = el ? el.value.trim() : "";
+    if(v) aromas[c] = v;
+  });
+  const total = Object.values(scores).reduce((a,b)=>a+b,0);
+  const entry = {
+    ref,
+    taster: document.getElementById("taster").value.trim(),
+    scores,
+    aromas,
+    total: Math.round(total*100)/100,
+    comment: document.getElementById("comment").value.trim()
+  };
+  const btn = document.getElementById("saveBtn");
+  if(btn){ btn.disabled=true; btn.textContent="Enregistrement…"; }
+  try{
+    const r = await fetch(API, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify(entry)
+    });
+    if(r.status === 401){ await lockNow(); return; }
+    if(!r.ok) throw new Error("réponse serveur " + r.status);
+    const saved = await r.json();
+    DB.unshift(saved);
+    renderTable();
+    resetForm();
+  }catch(e){
+    alert("Erreur d'enregistrement : " + e);
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent="＋ Enregistrer la fiche"; }
+  }
+}
+
+async function deleteEntry(id){
+  if(!confirm("Supprimer cette fiche ?")) return;
+  try{
+    const r = await fetch(`${API}?id=${id}`, { method:"DELETE" });
+    if(r.status === 401){ await lockNow(); return; }
+    DB = DB.filter(e=>e.id!==id);
+    renderTable();
+  }catch(e){
+    alert("Erreur de suppression : " + e);
+  }
+}
+
+/* ============ TABLE ============ */
+function renderTable(){
+  const db = loadDB();
+  const thead = document.getElementById("thead");
+  thead.innerHTML = `<th>Date</th><th>Réf.</th><th>Dég.</th>`
+    + CRITERIA.map(c=>`<th>${c}</th>`).join("")
+    + `<th>Commentaire</th><th>Radar</th><th></th>`;
+  const tbody = document.getElementById("tbody");
+  document.getElementById("count").textContent = db.length + (db.length>1?" fiches":" fiche");
+  if(!db.length){
+    tbody.innerHTML = `<tr><td class="empty" colspan="${CRITERIA.length+6}">Aucune fiche enregistrée pour l'instant.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = db.map(e=>`
+    <tr class="clickable" onclick="openModal(${e.id})">
+      <td>${e.date}</td>
+      <td class="ref">${escapeHtml(e.ref)}</td>
+      <td>${escapeHtml(e.taster)||"—"}</td>
+      ${CRITERIA.map(c=>`<td>${(e.scores[c]??0)}</td>`).join("")}
+      <td class="cmt" title="${escapeHtml(e.comment)}">${escapeHtml(e.comment)||"—"}</td>
+      <td><span class="view-badge">◎ voir</span></td>
+      <td><button class="del" onclick="event.stopPropagation();deleteEntry(${e.id})" title="Supprimer">✕</button></td>
+    </tr>`).join("");
+}
+function escapeHtml(s){ return (s||"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+/* ============ EXCEL EXPORT ============ */
+function exportExcel(){
+  const db = loadDB();
+  if(!db.length){ alert("Aucune donnée à exporter."); return; }
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1 — récapitulatif (1 ligne = 1 dégustation)
+  const recap = db.map(e=>{
+    const row = { Date:e.date, "Réf. échantillon":e.ref, "Dégustateur":e.taster };
+    CRITERIA.forEach(c=> row[c] = e.scores[c]);
+    AROMA_FOR.forEach(c=> row[(NOTE_LABEL[c]||"Notes")+" ("+c+")"] = (e.aromas&&e.aromas[c]) ? e.aromas[c] : "");
+    row["Commentaire"] = e.comment;
+    return row;
+  });
+  const ws1 = XLSX.utils.json_to_sheet(recap);
+  ws1["!cols"] = [{wch:16},{wch:18},{wch:14},...CRITERIA.map(()=>({wch:11})),...AROMA_FOR.map(()=>({wch:26})),{wch:40}];
+  XLSX.utils.book_append_sheet(wb, ws1, "Récapitulatif");
+
+  // Sheet 2 — fiches détaillées (vertical, une fiche après l'autre)
+  const detail = [];
+  db.forEach(e=>{
+    detail.push({Champ:"Date", Valeur:e.date});
+    detail.push({Champ:"Réf. échantillon", Valeur:e.ref});
+    detail.push({Champ:"Dégustateur", Valeur:e.taster});
+    CRITERIA.forEach(c=>{
+      detail.push({Champ:c, Valeur:e.scores[c]});
+      if(AROMA_FOR.includes(c) && e.aromas && e.aromas[c]){
+        detail.push({Champ:"  ↳ "+(NOTE_LABEL[c]||"notes"), Valeur:e.aromas[c]});
+      }
+    });
+    detail.push({Champ:"Commentaire", Valeur:e.comment});
+    detail.push({Champ:"", Valeur:""}); // séparateur
+  });
+  const ws2 = XLSX.utils.json_to_sheet(detail);
+  ws2["!cols"] = [{wch:20},{wch:55}];
+  XLSX.utils.book_append_sheet(wb, ws2, "Fiches détaillées");
+
+  const stamp = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `cupping_${stamp}.xlsx`);
+}
+
+/* ============ INIT ============ */
+buildSliders();
+</script>
+</body>
+</html>
