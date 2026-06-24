@@ -23,7 +23,17 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:var(--bg);color:var(--ink);font-family:'Segoe UI',system-ui,-apple-system,sans-serif}
-body{padding:24px;max-width:980px;margin:0 auto;min-height:100vh}
+html{overflow-x:hidden}
+body{padding:24px;max-width:980px;margin:0 auto;min-height:100vh;width:100%;overflow-x:hidden}
+input,textarea,button,select{max-width:100%}
+@media(max-width:640px){
+  body{padding:16px}
+  .card{padding:16px}
+  .field input[type=text]{min-width:0;width:100%}
+  .field.ref input{min-width:0;width:100%}
+  .ref-row{gap:12px}
+  .ref-row .field{flex:1 1 100%}
+}
 
 /* ---- Lock screen ---- */
 #lock{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:18px;padding:24px}
